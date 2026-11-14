@@ -7,8 +7,9 @@ The text based browser game torn(.com) gameplay script to help enhance gameplay 
 |---|---|---|
 | [torn-target-info](torn-target-info/torn-target-info.user.js) | 1.8 | Target info, attack/mug history with MUG/SKIP verdicts, FFScouter estimates, target finder. Profile and attack pages. |
 | [torn-gear-finder](torn-gear-finder/torn-gear-finder.user.js) | 1.0 | Finds better weapons/armor and missing enhancers across inventory and faction armory. |
+| [torn-recent-attack-check](torn-recent-attack-check/torn-recent-attack-check.user.js) | 2.1.0 | Shows whether a player was attacked in the last 16h (by you or others, via defend-stat deltas). Profile and attack pages. |
 
-Both work in Torn PDA and Tampermonkey. In PDA the key placeholder `###PDA-APIKEY###` is filled in automatically.
+All work in Torn PDA and Tampermonkey. In PDA the key placeholder `###PDA-APIKEY###` is filled in automatically.
 
 ## Changelog: torn-target-info
 
@@ -18,3 +19,8 @@ Both work in Torn PDA and Tampermonkey. In PDA the key placeholder `###PDA-APIKE
 - 1.5: original version (saved in `torn-target-info/versions/v1.5.user.js`)
 
 Versions 1.6 and 1.7 were edited in place, so only 1.5 and the current 1.8 exist as files.
+
+## Notes: torn-recent-attack-check
+
+- Your own attacks on the target are exact (attack log). Attacks by others are inferred from the target's defends won/lost/stalemated counters, so only counts are shown, not who or when.
+- Accuracy of the 16h window depends on the baseline: your own earlier snapshot (exact), else Torn's daily historical stats (~approx).
