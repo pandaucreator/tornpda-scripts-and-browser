@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Torn Target Info (PDA + Tampermonkey)
 // @namespace    torn-target-info
-// @version      1.8
+// @version      1.9
 // @description  Target info, attack/mug history with MUG/SKIP verdicts, FFScouter battle-stat estimates (with level-based fallback), and a target finder. Works in Torn PDA and Tampermonkey
 // @match        https://www.torn.com/profiles.php*
 // @match        https://www.torn.com/loader.php*
@@ -239,6 +239,20 @@
       <div style="color:#888;font-size:10px;">Which stat is which is unknown. Players specialise more as they grow.</div>`;
   }
 
+  // ================= Mug rank (FFScouter x mug outlook) =================
+  // rank = outlook score (0-100: networth, last action, history) x strength factor from FF estimate.
+  // Strength ratio = their estimated stats / your total. Too strong (>1.0x) = 0, so they never rank.
+  // No FF data (rough level estimate) or unknown own stats get a discount.
+  function ffFactor(bs, total, rough) {
+    if (!bs || !total) return { f: 0.7 };
+    const r = bs / total;
+    let f = r <= 0.5 ? 1 : r <= SAFE_RATIO ? 0.85 : r <= RISK_RATIO ? 0.4 : 0;
+    if (rough) f *= 0.8;
+    return { f, ratio: r };
+  }
+  const mugScore = (base, bs, total, rough) => Math.round(base * ffFactor(bs, total, rough).f);
+  const scoreColor = n => n >= 60 ? '#7fdb6a' : n >= 35 ? '#ffd24d' : '#ff9b6b';
+
   // ================= Ledgers =================
   // mug ledger  = { seen:{logId:1}, victims:{id:{n,total,last,ts}}, nw:{id:networth}, parsed:N }  (amounts, from your log)
   // att ledger  = { seen:{code:1}, byDef:{id:{n,mugs,first,last,lastResult}}, scanned:N }          (attacks you made)
@@ -335,7 +349,7 @@
 
   // ================= Mug outlook (fallback heuristic) =================
   // Torn does NOT expose other players' cash. Signals: status, networth, last action, your history.
-  function computeOutlook(d, networth) {
+  function computeOutlook(d, networth, id = targetId) {
     const reasons = [];
     const state = d.status ? d.status.state : '?';
     if (state !== 'Okay') {
@@ -359,7 +373,7 @@
     }
 
     const ledger = getLedger();
-    const v = ledger.victims[targetId];
+    const v = ledger.victims[id];
     if (v) {
       const hrsSince = (Date.now() / 1000 - v.ts) / 3600;
       if (v.ts && hrsSince < 6) { score -= 40; reasons.push('You mugged them <6h ago (likely protected/drained)'); }
@@ -384,15 +398,19 @@
     return { score, label, color, reasons, est, samples: ratios.length };
   }
 
-  let curTarget = null, curNw = 0, curOutlook = null;
+  let curTarget = null, curNw = 0, curOutlook = null, curBs = null, curRough = false;
   function renderAll() {
     if (!curTarget) return;
     curOutlook = computeOutlook(curTarget, curNw);
     const o = curOutlook;
     const dec = decide(targetId, curTarget.status && curTarget.status.state, o);
+    const fx = ffFactor(curBs, myTotal || 0, curRough);
+    const ms = mugScore(o.score, curBs, myTotal || 0, curRough);
     $('tt-decision').innerHTML = `
       <div style="font-size:15px;font-weight:bold;color:${dec.color};">${dec.verdict}</div>
-      <div style="color:#bbb;font-size:11px;">${dec.why}</div>`;
+      <div style="color:#bbb;font-size:11px;">${dec.why}</div>
+      <div style="margin-top:3px;">Mug rank: <b style="color:${scoreColor(ms)}">${ms}/100</b>
+        <span style="color:#888;font-size:10px;">(outlook ${o.score} x stats factor ${fx.f.toFixed(2)}${fx.ratio !== undefined ? ', ' + fx.ratio.toFixed(2) + 'x yours' : ''}${curBs === null ? ', waiting for FF' : curRough ? ', rough' : ''})</span></div>`;
     $('tt-outlook').innerHTML = `
       <div style="font-weight:bold;">Heuristic outlook</div>
       <div><b style="color:${o.color}">${o.label}</b> (score ${o.score}/100)</div>
@@ -437,6 +455,7 @@
         <div>Rough est. (level-based): <b>~${compact(fallbackEst)}</b></div>
         <div style="color:#999">Add an FFScouter-registered key in Settings for better estimates.</div>
         ${statSplitHtml(fallbackEst)}`;
+      await getMyTotal(); curBs = fallbackEst; curRough = true; renderAll();
       return;
     }
     const [map, total] = await Promise.all([ffStats([targetId]), getMyTotal()]);
@@ -449,9 +468,11 @@
         <div>Rough est. (level-based): <b>~${compact(fallbackEst)}</b></div>
         ${vdFb ? `<div>Verdict: <b style="color:${vdFb.color}">${vdFb.label}</b> <span style="color:#888">(rough)</span></div>` : ''}
         ${statSplitHtml(fallbackEst)}`;
+      curBs = fallbackEst; curRough = true; renderAll();
       return;
     }
     const vd = ffVerdict(Number(r.bs), total);
+    curBs = Number(r.bs); curRough = false; renderAll();
     $('tt-ff').innerHTML = `
       <div style="font-weight:bold;">FF Scouter</div>
       <div>Est. stats: <b>${r.human || compact(r.bs)}</b> | Fair Fight: <b>${r.ff !== undefined ? Number(r.ff).toFixed(2) : '?'}</b></div>
@@ -534,7 +555,7 @@
       const d = await apiP(`user/${id}?selections=profile,personalstats`);
       await sleep(700);
       if (d.error || !d.status || d.status.state !== 'Okay') continue;
-      scanned.push({ id, name: d.name, level: d.level, nw: (d.personalstats && d.personalstats.networth) || 0 });
+      scanned.push({ id, name: d.name, level: d.level, nw: (d.personalstats && d.personalstats.networth) || 0, d });
     }
 
     out.textContent = 'Getting FFScouter estimates...';
@@ -552,30 +573,31 @@
       else if (hrs < 6) skipList.push({ ...row, why: 'mugged <6h ago' });
       else if (vd && vd.label === 'Too strong') skipList.push({ ...row, why: 'too strong' });
       else if (v.avg < min) skipList.push({ ...row, why: 'low past payout' });
-      else mugList.push({ ...row, risk: vd ? vd.label : null });
+      else {
+        const base = Math.min(100, Math.round(60 + 10 * v.avg / min));
+        const hasFF = !!(f && f.bs);
+        const bs = hasFF ? Number(f.bs) : estimateStatsFallback(d.level);
+        mugList.push({ ...row, risk: vd ? vd.label : null, score: mugScore(base, bs, total, !hasFF), src: 'history' });
+      }
     }
     for (const s of scanned) {
       const f = ffMap[s.id];
-      if (f && f.bs) {
-        const vd = ffVerdict(Number(f.bs), total);
-        if (!vd || vd.label !== 'Defeatable') continue;
-        fresh.push({ id: s.id, name: s.name, level: s.level, score: s.nw, tag: `FF ${f.ff !== undefined ? Number(f.ff).toFixed(2) : '?'} ~${f.human || compact(f.bs)} NW ${fmt(s.nw)}` });
-      } else {
-        const est = estimateStatsFallback(s.level);
-        const vd = ffVerdict(est, total);
-        if (!vd || vd.label !== 'Defeatable') continue;
-        fresh.push({ id: s.id, name: s.name, level: s.level, score: s.nw - 1e12, tag: `no FF, rough ~${compact(est)} NW ${fmt(s.nw)}` });
-      }
+      const hasFF = !!(f && f.bs);
+      const bs = hasFF ? Number(f.bs) : estimateStatsFallback(s.level);
+      const sc = mugScore(computeOutlook(s.d, s.nw, s.id).score, bs, total, !hasFF);
+      if (sc <= 0) continue;   // too strong or not mug-able right now
+      const vd = ffVerdict(bs, total);
+      fresh.push({ id: s.id, name: s.name, level: s.level, score: sc, risk: vd ? vd.label : null, src: 'new',
+        tag: hasFF ? `FF ${f.ff !== undefined ? Number(f.ff).toFixed(2) : '?'} ~${f.human || compact(f.bs)} NW ${fmt(s.nw)}` : `no FF, rough ~${compact(bs)} NW ${fmt(s.nw)}` });
     }
-    fresh.sort((a, b) => b.score - a.score);
+    // one list, best mug targets first (history and new players together)
+    const ranked = [...mugList, ...fresh].sort((a, b) => b.score - a.score);
 
     const link = r => `<a style="color:#8ab4ff" href="/loader.php?sid=attack&user2ID=${r.id}">${r.name} [${r.id}]</a> Lv${r.level}`;
     out.innerHTML = `
       <div style="color:#888;font-size:10px;">Your stats: ${total ? compact(total) : 'n/a'} | Lv ${me.level} | min payout ${fmt(min)}${ffKey ? '' : ' | no FF key'}${ffLastError ? ' | FF: ' + ffLastError : ''}</div>
-      <div style="font-weight:bold;color:#7fdb6a;margin-top:4px;">MUG (${mugList.length})</div>
-      ${mugList.length ? mugList.map(r => `<div style="margin:3px 0;">${link(r)} <span style="color:#999">${r.tag}${r.risk ? ' | ' + r.risk : ''}</span></div>`).join('') : '<div style="color:#999">None from your history.</div>'}
-      <div style="font-weight:bold;color:#ffd24d;margin-top:4px;">New candidates (${fresh.length})</div>
-      ${fresh.length ? fresh.map(r => `<div style="margin:3px 0;">${link(r)} <span style="color:#999">${r.tag}</span></div>`).join('') : '<div style="color:#999">None found. Tap again.</div>'}
+      <div style="font-weight:bold;color:#7fdb6a;margin-top:4px;">Most likely to mug (${ranked.length})</div>
+      ${ranked.length ? ranked.map(r => `<div style="margin:3px 0;"><b style="color:${scoreColor(r.score)}">${r.score}</b> ${link(r)} <span style="color:#999">${r.src === 'history' ? '[history] ' : ''}${r.tag}${r.risk ? ' | ' + r.risk : ''}</span></div>`).join('') : '<div style="color:#999">None found. Tap again.</div>'}
       <div style="font-weight:bold;color:#ff9b6b;margin-top:4px;">SKIP (${skipList.length})</div>
       ${skipList.length ? skipList.map(r => `<div style="margin:3px 0;color:#888;">${r.name} [${r.id}] Lv${r.level} <span>${r.tag} | ${r.why}</span></div>`).join('') : '<div style="color:#999">None.</div>'}`;
     btn.disabled = false;
