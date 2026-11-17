@@ -1,0 +1,278 @@
+<!-- Copyright (c) 2026 pandaucreator. All rights reserved. See LICENSE. -->
+<title>Loss Selling Calculator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+  /* Layout: a tight result strip on top, inputs in the left column, source comparison on the right. Stacks at phone width. */
+  :root {
+    --bg: #f3f5f1; --surface: #ffffff; --fg: #1b221d; --muted: #59635c; --line: #d6dcd3;
+    --accent: #2c6e4c; --accent-ink: #ffffff; --good: #1f7a45; --bad: #b0402e; --warn: #9a6a12; --track: #e6ebe3;
+    --font-body: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-head: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #121713; --surface: #1a211b; --fg: #e6ebe4; --muted: #99a59b; --line: #2b352d;
+      --accent: #6fbf8b; --accent-ink: #0f1a13; --good: #6fcf92; --bad: #f08b75; --warn: #e0b45a; --track: #263028;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #121713; --surface: #1a211b; --fg: #e6ebe4; --muted: #99a59b; --line: #2b352d;
+    --accent: #6fbf8b; --accent-ink: #0f1a13; --good: #6fcf92; --bad: #f08b75; --warn: #e0b45a; --track: #263028;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px; line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 20px 40px;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+  h1 { font-family: var(--font-head); font-size: 26px; line-height: 1.15; margin: 0; text-wrap: balance; }
+  h2 { font-family: var(--font-head); font-size: 15px; margin: 0 0 10px; letter-spacing: .01em; }
+  .sub { color: var(--muted); margin: 4px 0 0; max-width: 62ch; }
+  .notice { border: 1px solid var(--line); border-left: 3px solid var(--warn); background: var(--surface); padding: 8px 12px; border-radius: 4px; color: var(--muted); font-size: 12.5px; }
+
+  .strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; }
+  .stat { padding: 12px 14px; border-right: 1px solid var(--line); min-width: 0; }
+  .stat:last-child { border-right: 0; }
+  .stat .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  .stat .v { font-family: var(--font-head); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .stat .d { color: var(--muted); font-size: 11.5px; }
+  .pos { color: var(--good); } .neg { color: var(--bad); }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 14px; min-width: 0; }
+  .row { display: grid; grid-template-columns: minmax(0, 1fr) 130px; gap: 8px; align-items: center; padding: 4px 0; }
+  .row label { color: var(--fg); }
+  .row small { display: block; color: var(--muted); font-size: 11.5px; }
+  input[type=number], input[type=text], select {
+    width: 100%; min-width: 0; padding: 7px 8px; font: inherit; color: var(--fg); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 4px; font-variant-numeric: tabular-nums;
+  }
+  input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .tbl { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .tbl th { text-align: left; font-weight: 500; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; padding: 4px 6px 6px 0; }
+  .tbl td { padding: 5px 6px 5px 0; vertical-align: middle; }
+  .tbl input { padding: 5px 6px; }
+  .scroll { overflow-x: auto; }
+  .bars { display: flex; flex-direction: column; gap: 10px; }
+  .bar .top { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; }
+  .bar .track { height: 10px; background: var(--track); border-radius: 2px; margin-top: 3px; position: relative; overflow: hidden; }
+  .bar .fill { position: absolute; top: 0; bottom: 0; background: var(--good); }
+  .bar .fill.loss { background: var(--bad); }
+  .best { font-size: 11px; color: var(--accent-ink); background: var(--accent); padding: 1px 6px; border-radius: 3px; margin-left: 6px; }
+  .note { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
+  .note b { color: var(--fg); font-weight: 600; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  button { font: inherit; padding: 7px 12px; border-radius: 4px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  @media (max-width: 760px) {
+    .grid { grid-template-columns: minmax(0, 1fr); }
+    .strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .stat:nth-child(2) { border-right: 0; }
+    .stat:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+    h1 { font-size: 22px; }
+  }
+  @media (prefers-reduced-motion: no-preference) { .fill { transition: width .2s ease, left .2s ease; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Loss Selling Calculator</h1>
+    <p class="sub">Work out what a loss really costs you in energy and life, and what to charge so you profit. Compare Xanax, point refills, energy cans and first aid kits side by side.</p>
+  </header>
+  <div class="notice">Prices and item effects below are example values, not live market data. Replace them with current market prices and your own numbers. Check Torn's rules on pre-arranged attacks before selling losses.</div>
+
+  <section class="strip" aria-live="polite">
+    <div class="stat"><div class="k">Profit per loss</div><div class="v" id="o-profit">-</div><div class="d" id="o-margin"></div></div>
+    <div class="stat"><div class="k">Real cost per loss</div><div class="v" id="o-cost">-</div><div class="d" id="o-costsplit"></div></div>
+    <div class="stat"><div class="k">Per order</div><div class="v" id="o-order">-</div><div class="d" id="o-orderd"></div></div>
+    <div class="stat"><div class="k">Per day</div><div class="v" id="o-day">-</div><div class="d" id="o-dayd"></div></div>
+  </section>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel">
+        <h2>The deal</h2>
+        <div class="row"><label for="price">Price per loss ($)<small>What the buyer pays you each time you lose</small></label><input id="price" type="number" inputmode="decimal" min="0" step="1000"></div>
+        <div class="row"><label for="order">Losses per order<small>How many the buyer asked for</small></label><input id="order" type="number" inputmode="numeric" min="1" step="1"></div>
+        <div class="row"><label for="perday">Losses you sell per day<small>Used for the daily figure</small></label><input id="perday" type="number" inputmode="numeric" min="0" step="1"></div>
+        <div class="row"><label for="other">Other cost per loss ($)<small>Anything else, e.g. fees or a tip</small></label><input id="other" type="number" inputmode="decimal" min="0" step="1000"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Energy</h2>
+        <div class="row"><label for="atk">Energy per attack<small>Each attack you start spends this</small></label><input id="atk" type="number" inputmode="numeric" min="1" step="1"></div>
+        <div class="row"><label for="maxe">Your max energy<small>A point refill fills you back to this</small></label><input id="maxe" type="number" inputmode="numeric" min="1" step="1"></div>
+        <div class="row"><label for="lefte">Energy left when you refill<small>Wasted refill room if above 0</small></label><input id="lefte" type="number" inputmode="numeric" min="0" step="1"></div>
+        <div class="row"><label for="regen">Free regen per hour<small>Natural energy you get without paying</small></label><input id="regen" type="number" inputmode="decimal" min="0" step="1"></div>
+        <div class="row"><label for="useregen">Count free regen<small>Covers part of your daily attacks for free</small></label><select id="useregen"><option value="1">Yes</option><option value="0">No</option></select></div>
+        <div class="row"><label for="source">Refill method for your plan<small>The strip above uses this one</small></label>
+          <select id="source"><option value="xanax">Xanax</option><option value="points">Points refill</option><option value="can">Energy can</option><option value="custom">Custom item</option></select></div>
+      </section>
+
+      <section class="panel">
+        <h2>Life and first aid kits</h2>
+        <div class="row"><label for="lifelost">Life lost per loss (%)<small>Of your max life, each time you lose</small></label><input id="lifelost" type="number" inputmode="decimal" min="0" max="100" step="1"></div>
+        <div class="row"><label for="liferegen">Life you regain free (%)<small>Natural regen between losses</small></label><input id="liferegen" type="number" inputmode="decimal" min="0" max="100" step="1"></div>
+        <div class="row"><label for="aid">First aid item<small>Heals the rest so you can keep going</small></label>
+          <select id="aid"><option value="small">Small first aid kit</option><option value="fak">First aid kit</option><option value="custom">Custom item</option><option value="none">None</option></select></div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="panel">
+        <h2>Energy sources</h2>
+        <div class="scroll">
+          <table class="tbl">
+            <thead><tr><th>Item</th><th>Energy</th><th>Price per use ($)</th></tr></thead>
+            <tbody>
+              <tr><td>Xanax</td><td><input id="x-e" type="number" inputmode="numeric" step="1"></td><td><input id="x-p" type="number" inputmode="decimal" step="1000"></td></tr>
+              <tr><td>Points refill<br><span class="note" style="margin:0">points / price each</span></td><td><input id="p-n" type="number" inputmode="numeric" step="1"></td><td><input id="p-p" type="number" inputmode="decimal" step="100"></td></tr>
+              <tr><td>Energy can</td><td><input id="c-e" type="number" inputmode="numeric" step="1"></td><td><input id="c-p" type="number" inputmode="decimal" step="1000"></td></tr>
+              <tr><td><input id="u-name" type="text" aria-label="Custom item name"></td><td><input id="u-e" type="number" inputmode="numeric" step="1"></td><td><input id="u-p" type="number" inputmode="decimal" step="1000"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">A point refill gives <b id="p-gain">0</b> energy with your numbers (max energy minus what you have left). Xanax and cans add on top of your bar.</p>
+        <p class="note"><b>Before relying on Xanax:</b> it has a cooldown and carries overdose and addiction risk, so it cannot be used back to back.</p>
+      </section>
+
+      <section class="panel">
+        <h2>First aid items</h2>
+        <div class="scroll">
+          <table class="tbl">
+            <thead><tr><th>Item</th><th>Heals (%)</th><th>Price each ($)</th></tr></thead>
+            <tbody>
+              <tr><td>Small first aid kit</td><td><input id="s-h" type="number" inputmode="decimal" step="1"></td><td><input id="s-p" type="number" inputmode="decimal" step="1000"></td></tr>
+              <tr><td>First aid kit</td><td><input id="f-h" type="number" inputmode="decimal" step="1"></td><td><input id="f-p" type="number" inputmode="decimal" step="1000"></td></tr>
+              <tr><td><input id="a-name" type="text" aria-label="Custom first aid item name"></td><td><input id="a-h" type="number" inputmode="decimal" step="1"></td><td><input id="a-p" type="number" inputmode="decimal" step="1000"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">Kits needed per loss: <b id="aid-n">0</b>. Medical items share a cooldown, so check how fast you can use them.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Profit per loss by refill method</h2>
+        <div class="bars" id="bars"></div>
+        <p class="note" id="best-note"></p>
+      </section>
+
+      <section class="panel">
+        <h2>Pricing guide</h2>
+        <div class="row"><label for="target">Margin you want (%)</label><input id="target" type="number" inputmode="decimal" min="0" max="95" step="1"></div>
+        <div class="row"><span>Break-even price per loss</span><b id="g-be" style="text-align:right">-</b></div>
+        <div class="row"><span>Price for your margin</span><b id="g-tg" style="text-align:right">-</b></div>
+        <div class="actions" style="margin-top:8px"><button id="reset" type="button">Reset to examples</button></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  var DEFAULTS = {
+    price: 150000, order: 20, perday: 60, other: 0,
+    atk: 25, maxe: 100, lefte: 0, regen: 30, useregen: '1', source: 'xanax',
+    lifelost: 40, liferegen: 0, aid: 'small',
+    'x-e': 250, 'x-p': 850000, 'p-n': 25, 'p-p': 31000, 'c-e': 25, 'c-p': 150000, 'u-name': 'Custom item', 'u-e': 100, 'u-p': 300000,
+    's-h': 20, 's-p': 30000, 'f-h': 40, 'f-p': 90000, 'a-name': 'Custom aid', 'a-h': 50, 'a-p': 120000, target: 30
+  };
+  var IDS = Object.keys(DEFAULTS);
+  var $ = function (id) { return document.getElementById(id); };
+  var money = function (n) { return (n < 0 ? '-$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US'); };
+  var num = function (id) { var v = parseFloat($(id).value); return isFinite(v) ? v : 0; };
+
+  function load() {
+    var saved = {};
+    try { saved = JSON.parse(localStorage.getItem('tlsc') || '{}'); } catch (e) {}
+    IDS.forEach(function (id) { $(id).value = saved[id] !== undefined ? saved[id] : DEFAULTS[id]; });
+  }
+  function save() {
+    try { var o = {}; IDS.forEach(function (id) { o[id] = $(id).value; }); localStorage.setItem('tlsc', JSON.stringify(o)); } catch (e) {}
+  }
+
+  // Energy sources: each gives E energy for `cost` dollars per use.
+  function sources() {
+    var gain = Math.max(0, num('maxe') - num('lefte'));
+    return [
+      { key: 'xanax', name: 'Xanax', e: num('x-e'), cost: num('x-p') },
+      { key: 'points', name: 'Points refill', e: gain, cost: num('p-n') * num('p-p') },
+      { key: 'can', name: 'Energy can', e: num('c-e'), cost: num('c-p') },
+      { key: 'custom', name: $('u-name').value || 'Custom item', e: num('u-e'), cost: num('u-p') }
+    ];
+  }
+
+  function calc() {
+    var atk = Math.max(1, num('atk')), perday = num('perday');
+    var srcs = sources();
+    $('p-gain').textContent = Math.round(Math.max(0, num('maxe') - num('lefte')));
+
+    // Kits per loss from the chosen first aid item
+    var aidMap = { small: [num('s-h'), num('s-p')], fak: [num('f-h'), num('f-p')], custom: [num('a-h'), num('a-p')], none: [0, 0] };
+    var ap = aidMap[$('aid').value], need = Math.max(0, num('lifelost') - num('liferegen'));
+    var kits = ap[0] > 0 ? need / ap[0] : 0;
+    var aidCost = kits * ap[1];
+    $('aid-n').textContent = (Math.round(kits * 100) / 100).toString();
+
+    // Free regen covers a share of daily attacks (if you sell enough that regen is not all spent)
+    var freeShare = 0;
+    if ($('useregen').value === '1' && perday > 0) {
+      freeShare = Math.min(1, (num('regen') * 24) / (perday * atk));
+    }
+
+    var price = num('price'), other = num('other');
+    var rows = srcs.map(function (s) {
+      var perE = s.e > 0 ? s.cost / s.e : Infinity;
+      var energyCost = atk * perE * (1 - freeShare);
+      var cost = energyCost + aidCost + other;
+      return { key: s.key, name: s.name, e: s.e, losses: s.e > 0 ? Math.floor(s.e / atk) : 0, energyCost: energyCost, cost: cost, profit: price - cost };
+    });
+    var cur = rows.filter(function (r) { return r.key === $('source').value; })[0] || rows[0];
+    var margin = price > 0 ? cur.profit / price * 100 : 0;
+
+    var finite = isFinite(cur.profit);
+    $('o-profit').textContent = finite ? money(cur.profit) : 'n/a';
+    $('o-profit').className = 'v ' + (cur.profit >= 0 ? 'pos' : 'neg');
+    $('o-margin').textContent = finite ? (Math.round(margin * 10) / 10) + '% margin' : 'Energy value is 0';
+    $('o-cost').textContent = finite ? money(cur.cost) : 'n/a';
+    $('o-costsplit').textContent = finite ? 'Energy ' + money(cur.energyCost) + ', aid ' + money(aidCost) : '';
+    var order = Math.max(0, num('order'));
+    $('o-order').textContent = finite ? money(cur.profit * order) : 'n/a';
+    $('o-order').className = 'v ' + (cur.profit >= 0 ? 'pos' : 'neg');
+    $('o-orderd').textContent = order + ' losses, revenue ' + money(price * order);
+    $('o-day').textContent = finite ? money(cur.profit * perday) : 'n/a';
+    $('o-day').className = 'v ' + (cur.profit >= 0 ? 'pos' : 'neg');
+    $('o-dayd').textContent = perday + ' losses, ' + Math.round(perday * atk) + ' energy' + (freeShare > 0 ? ', ' + Math.round(freeShare * 100) + '% free' : '');
+
+    // Bars (scaled to the largest absolute profit)
+    var max = Math.max.apply(null, rows.map(function (r) { return isFinite(r.profit) ? Math.abs(r.profit) : 0; }).concat([1]));
+    var best = rows.filter(function (r) { return isFinite(r.profit); }).sort(function (a, b) { return b.profit - a.profit; })[0];
+    $('bars').innerHTML = rows.map(function (r) {
+      var w = isFinite(r.profit) ? Math.abs(r.profit) / max * 50 : 0;
+      var left = r.profit >= 0 ? 50 : 50 - w;
+      return '<div class="bar"><div class="top"><span>' + esc(r.name) + (best && r.key === best.key ? '<span class="best">best</span>' : '') +
+        '</span><span class="' + (r.profit >= 0 ? 'pos' : 'neg') + '">' + (isFinite(r.profit) ? money(r.profit) : 'n/a') + '</span></div>' +
+        '<div class="track" role="img" aria-label="' + esc(r.name) + ' profit per loss"><div class="fill ' + (r.profit < 0 ? 'loss' : '') + '" style="left:' + left + '%;width:' + w + '%"></div></div>' +
+        '<div class="note" style="margin:2px 0 0">Cost ' + (isFinite(r.cost) ? money(r.cost) : 'n/a') + ' per loss, ' + r.losses + ' loss' + (r.losses === 1 ? '' : 'es') + ' per use</div></div>';
+    }).join('');
+    $('best-note').innerHTML = best ? 'Cheapest way to refill with these numbers: <b>' + esc(best.name) + '</b>.' : '';
+
+    // Pricing guide for the chosen method
+    var t = Math.min(95, Math.max(0, num('target'))) / 100;
+    $('g-be').textContent = finite ? money(cur.cost) : 'n/a';
+    $('g-tg').textContent = finite ? money(cur.cost / (1 - t)) : 'n/a';
+  }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  load(); calc();
+  IDS.forEach(function (id) { $(id).addEventListener('input', function () { save(); calc(); }); $(id).addEventListener('change', function () { save(); calc(); }); });
+  $('reset').addEventListener('click', function () { IDS.forEach(function (id) { $(id).value = DEFAULTS[id]; }); save(); calc(); });
+})();
+</script>

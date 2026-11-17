@@ -10,6 +10,7 @@ The text based browser game torn(.com) gameplay script to help enhance gameplay 
 | [torn-rental-finder](torn-rental-finder/torn-rental-finder.user.js) | 1.0 | Ranks property rentals by true daily cost (rent + upkeep) and cost per happy. |
 | [torn-loss-escape-ledger](torn-loss-escape-ledger/torn-loss-escape-ledger.user.js) | 1.0 | Ledger for selling losses/escapes: buyer orders, delivered counts from your attack history, amount owed, payments, balance. Read-only. |
 | [torn-weapon-market-compare](torn-weapon-market-compare/torn-weapon-market-compare.user.js) | 1.0 | Compares item market weapon listings with your current weapon on damage, accuracy, stealth and quality, ranked by value for the price. |
+| [torn-loss-selling-calculator](torn-loss-selling-calculator/torn-loss-selling-calculator.html) | 1.0 | Interactive calculator (open the HTML file in a browser): profit per loss, order and day when selling losses, comparing Xanax, point refills, energy cans and first aid kits. |
 | [torn-recent-attack-check](torn-recent-attack-check/torn-recent-attack-check.user.js) | 2.1.0 | Shows whether a player was attacked in the last 16h (by you or others, via defend-stat deltas). Profile and attack pages. |
 
 All work in Torn PDA and Tampermonkey. In PDA the key placeholder `###PDA-APIKEY###` is filled in automatically.
