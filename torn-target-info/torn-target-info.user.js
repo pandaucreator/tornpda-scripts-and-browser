@@ -1,8 +1,11 @@
 // ==UserScript==
 // @name         Torn Target Info (PDA + Tampermonkey)
 // @namespace    torn-target-info
-// @version      1.9
-// @description  Target info, attack/mug history with MUG/SKIP verdicts, FFScouter battle-stat estimates (with level-based fallback), and a target finder. Works in Torn PDA and Tampermonkey
+// @author       pandaucreator
+// @license      All Rights Reserved
+// @homepageURL  https://github.com/pandaucreator/tornpda-scripts-and-browser
+// @version      1.9.1
+// @description  Target info, attack/mug history with MUG/SKIP verdicts, FFScouter battle-stat estimates (with level-based fallback), and a target finder. Works in Torn PDA and Tampermonkey. Your key is sent to ffscouter.com only if you add an FFScouter key in Settings
 // @match        https://www.torn.com/profiles.php*
 // @match        https://www.torn.com/loader.php*
 // @match        https://www.torn.com/page.php?sid=attack*

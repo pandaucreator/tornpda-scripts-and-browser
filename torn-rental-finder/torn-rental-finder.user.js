@@ -1,7 +1,10 @@
 // ==UserScript==
 // @name         Torn Rental Finder (PDA + Tampermonkey)
 // @namespace    torn-rental-finder
-// @version      1.0
+// @author       pandaucreator
+// @license      All Rights Reserved
+// @homepageURL  https://github.com/pandaucreator/tornpda-scripts-and-browser
+// @version      1.0.1
 // @description  Finds the cheapest property rentals by TRUE daily cost (rent + upkeep), plus cost per happy
 // @match        https://www.torn.com/properties.php*
 // @run-at       document-end
