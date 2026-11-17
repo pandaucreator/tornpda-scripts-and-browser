@@ -1,7 +1,10 @@
 // ==UserScript==
 // @name         Torn Gear Finder (PDA + Tampermonkey)
 // @namespace    torn-gear-finder
-// @version      1.0
+// @author       pandaucreator
+// @license      All Rights Reserved
+// @homepageURL  https://github.com/pandaucreator/tornpda-scripts-and-browser
+// @version      1.0.1
 // @description  Finds better weapons/armor and missing enhancers across your inventory and faction armory
 // @match        https://www.torn.com/*
 // @run-at       document-end

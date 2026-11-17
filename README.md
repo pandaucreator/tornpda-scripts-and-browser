@@ -26,3 +26,7 @@ Versions 1.6 and 1.7 were edited in place, so only 1.5, 1.8 and the current vers
 
 - Your own attacks on the target are exact (attack log). Attacks by others are inferred from the target's defends won/lost/stalemated counters, so only counts are shown, not who or when.
 - Accuracy of the 16h window depends on the baseline: your own earlier snapshot (exact), else Torn's daily historical stats (~approx).
+
+## License
+
+All rights reserved (see [LICENSE](LICENSE)). Author: pandaucreator. Header version bumps: target-info 1.9.1, gear-finder 1.0.1, rental-finder 1.0.1 (license/author/homepage metadata only, no behaviour change).
