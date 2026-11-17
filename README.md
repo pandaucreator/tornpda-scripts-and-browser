@@ -7,6 +7,7 @@ The text based browser game torn(.com) gameplay script to help enhance gameplay 
 |---|---|---|
 | [torn-target-info](torn-target-info/torn-target-info.user.js) | 1.9 | Target info, attack/mug history with MUG/SKIP verdicts, FFScouter estimates, target finder ranked by mug likelihood. Profile and attack pages. |
 | [torn-gear-finder](torn-gear-finder/torn-gear-finder.user.js) | 1.0 | Finds better weapons/armor and missing enhancers across inventory and faction armory. |
+| [torn-rental-finder](torn-rental-finder/torn-rental-finder.user.js) | 1.0 | Ranks property rentals by true daily cost (rent + upkeep) and cost per happy. |
 | [torn-recent-attack-check](torn-recent-attack-check/torn-recent-attack-check.user.js) | 2.1.0 | Shows whether a player was attacked in the last 16h (by you or others, via defend-stat deltas). Profile and attack pages. |
 
 All work in Torn PDA and Tampermonkey. In PDA the key placeholder `###PDA-APIKEY###` is filled in automatically.
