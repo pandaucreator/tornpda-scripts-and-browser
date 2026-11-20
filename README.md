@@ -12,6 +12,7 @@ The text based browser game torn(.com) gameplay script to help enhance gameplay 
 | [torn-weapon-market-compare](torn-weapon-market-compare/torn-weapon-market-compare.user.js) | 1.0 | Compares item market weapon listings with your current weapon on damage, accuracy, stealth and quality, ranked by value for the price. |
 | [torn-loss-selling-calculator](torn-loss-selling-calculator/torn-loss-selling-calculator.html) | 1.0 | Interactive calculator (open the HTML file in a browser): profit per loss, order and day when selling losses, comparing Xanax, point refills, energy cans and first aid kits. |
 | [torn-recent-attack-check](torn-recent-attack-check/torn-recent-attack-check.user.js) | 2.1.0 | Shows whether a player was attacked in the last 16h (by you or others, via defend-stat deltas). Profile and attack pages. |
+| [torn-faction-armory-tracker](torn-faction-armory-tracker/torn-faction-armory-tracker.user.js) | 1.0.0 | Searches the faction armory log for your name: items taken (loaned/used), returned, and still outstanding, with item filter and raw-log view. Factions page. Read-only. |
 
 All work in Torn PDA and Tampermonkey. In PDA the key placeholder `###PDA-APIKEY###` is filled in automatically.
 
